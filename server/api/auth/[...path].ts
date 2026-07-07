@@ -1,6 +1,8 @@
 // Proxy zu Neon Auth (gehosteter Better-Auth-Service).
 // Macht die Auth-Cookies First-Party und hält das Auth-SDK aus dem Client raus.
 // Neben server/utils/auth.ts die einzige Stelle, die mit Neon Auth spricht (Leitplanke 2.2).
+import { devRewriteSetCookie, upstreamCookieHeader } from '../../utils/authCookies'
+
 export default defineEventHandler(async (event) => {
   const base = process.env.NEON_AUTH_BASE_URL
   if (!base) {
@@ -16,6 +18,9 @@ export default defineEventHandler(async (event) => {
     const value = getHeader(event, name)
     if (value) headers[name] = value
   }
+  if (headers.cookie) {
+    headers.cookie = upstreamCookieHeader(headers.cookie)
+  }
 
   const upstream = await globalThis.fetch(target, {
     method,
@@ -24,10 +29,12 @@ export default defineEventHandler(async (event) => {
     redirect: 'manual',
   })
 
-  // Set-Cookie und Location (OAuth-Redirects) durchreichen
+  // Set-Cookie und Location (OAuth-Redirects) durchreichen;
+  // im lokalen http-Dev Cookies browsertauglich umschreiben
+  const isSecureRequest = getRequestProtocol(event) === 'https'
   const setCookies = upstream.headers.getSetCookie?.() ?? []
   for (const cookie of setCookies) {
-    appendResponseHeader(event, 'set-cookie', cookie)
+    appendResponseHeader(event, 'set-cookie', isSecureRequest ? cookie : devRewriteSetCookie(cookie))
   }
   const location = upstream.headers.get('location')
   if (location) {

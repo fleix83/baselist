@@ -3,6 +3,7 @@
 // server/api/auth/[...path].ts betroffen.
 import type { H3Event } from 'h3'
 import { eq } from 'drizzle-orm'
+import { upstreamCookieHeader } from './authCookies'
 import { db, schema } from './db'
 
 export interface AuthUser {
@@ -27,7 +28,7 @@ async function fetchAuthUser(event: H3Event): Promise<AuthUser | null> {
   if (!base || !cookie) return null
   try {
     const res = await $fetch<{ user: AuthUser | null } | null>(`${base}/get-session`, {
-      headers: { cookie },
+      headers: { cookie: upstreamCookieHeader(cookie) },
     })
     return res?.user ?? null
   } catch {

@@ -13,7 +13,13 @@ const info = ref('')
 
 async function afterLogin() {
   await refreshNuxtData('me')
-  const me = await $fetch<{ account: unknown | null }>('/api/me')
+  const me = await $fetch<{ authUser: unknown | null; account: unknown | null }>('/api/me')
+  if (!me.authUser) {
+    // Session-Cookie wurde vom Browser nicht übernommen -> sichtbarer Fehler
+    // statt stiller Redirect-Schleife
+    error.value = 'Login war korrekt, aber die Session wurde nicht gespeichert. Bitte Seite hart neu laden (Cmd+Shift+R) und nochmal anmelden.'
+    return
+  }
   await navigateTo(me.account ? '/' : '/onboarding')
 }
 
