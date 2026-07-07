@@ -47,6 +47,13 @@ const TYPE_LABELS: Record<string, string> = {
 
     <p v-if="profile.account.bio" class="mt-4 whitespace-pre-line text-[15px]">{{ profile.account.bio }}</p>
 
+    <div v-if="!profile.isOwn" class="mt-2">
+      <ReportButton
+        :target-kind="profile.account.type === 'event' ? 'event' : 'account'"
+        :target-id="profile.account.id"
+      />
+    </div>
+
     <!-- Event-Infos für Konten vom Typ 'event' -->
     <EventDetails v-if="profile.event" :event="profile.event" class="mt-4" />
 

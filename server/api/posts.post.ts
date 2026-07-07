@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { requireUser } from '../utils/auth'
 import { db, schema } from '../utils/db'
+import { enforceRateLimit, fileSystemReport, runModerationChain } from '../utils/moderation'
 
 const bodySchema = z.object({
   body: z.string().trim().max(2000).nullish(),
@@ -31,6 +32,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Moderationskette: Rate-Limit -> Sperrwortliste -> AI-Check
+  await enforceRateLimit(account, 'post')
+  const outcome = await runModerationChain([body, linkUrl].filter(Boolean).join('\n'))
+
   const [post] = await db
     .insert(schema.posts)
     .values({
@@ -39,9 +44,13 @@ export default defineEventHandler(async (event) => {
       body: body ?? null,
       imageUrl: imageUrl ?? null,
       linkUrl: linkUrl ?? null,
-      moderationStatus: 'visible',
+      moderationStatus: outcome.status,
     })
     .returning()
+
+  if (outcome.queue) {
+    await fileSystemReport('post', post.id, outcome.queue.reason, outcome.queue.note)
+  }
 
   return { post }
 })

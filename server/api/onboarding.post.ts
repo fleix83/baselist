@@ -38,6 +38,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Dieses Handle ist schon vergeben.' })
   }
 
+  // Admins per Env-Liste (ADMIN_EMAILS, kommagetrennt)
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+  const isAdmin = adminEmails.includes(current.authUser.email.toLowerCase())
+
   const accountId = crypto.randomUUID()
   // Neon-HTTP-Treiber: db.batch läuft atomar in einer Transaktion
   await db.batch([
@@ -51,6 +58,7 @@ export default defineEventHandler(async (event) => {
       authUserId: current.authUser.id,
       accountId,
       email: current.authUser.email,
+      isAdmin,
       interests: parsed.data.interests,
     }),
   ])

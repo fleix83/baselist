@@ -4,6 +4,7 @@ import { requireUser } from '../../utils/auth'
 import { db, schema } from '../../utils/db'
 import { ensureUniqueHandle } from '../../utils/import/core'
 import { slugifyHandle } from '../../utils/handles'
+import { enforceRateLimit, fileSystemReport, runModerationChain } from '../../utils/moderation'
 
 const bodySchema = z.object({
   title: z.string().trim().min(3).max(120),
@@ -43,6 +44,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Moderationskette: Rate-Limit -> Sperrwortliste -> AI-Check
+  await enforceRateLimit(account, 'event')
+  const outcome = await runModerationChain([data.title, data.description].filter(Boolean).join('\n'))
+
   const accountId = crypto.randomUUID()
   const handle = await ensureUniqueHandle(slugifyHandle(data.title, 40))
   const dateLabel = new Intl.DateTimeFormat('de-CH', {
@@ -68,17 +73,22 @@ export default defineEventHandler(async (event) => {
       description: data.description ?? null,
       imageUrl: data.imageUrl ?? null,
       status: 'planned',
-      moderationStatus: 'visible',
+      moderationStatus: outcome.status,
       createdByAccountId: account.id,
     }),
     // Ankündigungs-Post: so erscheint das Event im Folge-Feed der Follower,
-    // der Ersteller bleibt als Autor sichtbar
+    // der Ersteller bleibt als Autor sichtbar. Erbt den Moderationsstatus.
     db.insert(schema.posts).values({
       authorAccountId: account.id,
       subjectAccountId: accountId,
       body: `Neues Event: ${data.title} – ${dateLabel}`,
+      moderationStatus: outcome.status,
     }),
   ])
+
+  if (outcome.queue) {
+    await fileSystemReport('event', accountId, outcome.queue.reason, outcome.queue.note)
+  }
 
   const [created] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountId))
   return { account: created }

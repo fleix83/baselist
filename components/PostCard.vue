@@ -76,6 +76,9 @@ const embed = computed(() => {
       >{{ embed.src }}</a>
     </div>
 
+    <div class="mt-2 flex items-center justify-end">
+      <ReportButton target-kind="post" :target-id="post.id" />
+    </div>
     <slot name="footer" />
   </article>
 </template>
