@@ -64,9 +64,17 @@ async function logout() {
       </div>
     </header>
 
-    <main class="mx-auto w-full max-w-3xl flex-1 px-4 pb-24 pt-4 sm:pb-8">
+    <main class="mx-auto w-full max-w-3xl flex-1 px-4 pt-4">
       <slot />
     </main>
+
+    <footer class="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 text-center text-xs text-stone-400 sm:pb-8">
+      <NuxtLink to="/regeln" class="hover:underline">Community-Regeln</NuxtLink>
+      ·
+      <NuxtLink to="/impressum" class="hover:underline">Impressum</NuxtLink>
+      ·
+      <NuxtLink to="/datenschutz" class="hover:underline">Datenschutz</NuxtLink>
+    </footer>
 
     <!-- Mobile: Bottom-Navigation -->
     <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white pb-[env(safe-area-inset-bottom)] sm:hidden">

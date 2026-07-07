@@ -11,6 +11,33 @@ useHead(() => ({
   title: profile.value ? `${profile.value.account.displayName} (@${profile.value.account.handle}) – Baselist` : 'Profil – Baselist',
 }))
 
+// SEO/OG-Tags: geteilte Event-Links sehen in WhatsApp & Co. gut aus
+const config = useRuntimeConfig()
+const ogDescription = computed(() => {
+  const p = profile.value
+  if (!p) return ''
+  if (p.event) {
+    const date = new Intl.DateTimeFormat('de-CH', {
+      weekday: 'short', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+      timeZone: 'Europe/Zurich',
+    }).format(new Date(p.event.startsAt as string))
+    const place = p.event.venue?.displayName ?? p.event.address ?? 'Basel'
+    return [date, place, p.event.priceInfo].filter(Boolean).join(' · ')
+  }
+  return p.account.bio ?? `@${p.account.handle} auf Baselist – was läuft in Basel.`
+})
+useSeoMeta({
+  ogTitle: () => profile.value?.account.displayName ?? 'Baselist',
+  ogDescription: () => ogDescription.value,
+  description: () => ogDescription.value,
+  ogType: 'website',
+  ogSiteName: 'Baselist',
+  ogUrl: () => `${config.public.baseUrl}/@${handle.value}`,
+  ogImage: () => (profile.value?.event?.imageUrl as string | null)
+    ?? profile.value?.account.avatarUrl
+    ?? `${config.public.baseUrl}/icons/icon-512.png`,
+})
+
 const TYPE_LABELS: Record<string, string> = {
   person: 'Person',
   event: 'Event',

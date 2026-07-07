@@ -1,0 +1,35 @@
+# Tägliches DB-Backup via pg_dump. Braucht das Repo-Secret DATABASE_URL
+# (Settings -> Secrets and variables -> Actions).
+name: DB-Backup
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # täglich 02:30 UTC
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PostgreSQL-18-Client installieren
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+
+      - name: pg_dump ausführen
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          test -n "$DATABASE_URL" || { echo "Secret DATABASE_URL fehlt"; exit 1; }
+          STAMP=$(date -u +%Y-%m-%d)
+          pg_dump "$DATABASE_URL" --no-owner --no-privileges -Fc -f "baselist-$STAMP.dump"
+          ls -lh baselist-*.dump
+
+      - name: Backup als Artifact sichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: baselist-*.dump
+          retention-days: 14

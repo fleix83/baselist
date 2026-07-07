@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.14.0",
+    "@tailwindcss/typography": "^0.5.20",
     "dotenv": "^16.4.0",
     "drizzle-kit": "^0.31.0",
     "tsx": "^4.19.0"
