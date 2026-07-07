@@ -1,8 +1,9 @@
-// Folge-Feed: eigene Posts plus Posts gefolgter Konten, sortiert nach
-// Posting-Zeit. 'limited' ist im Feed der Follower sichtbar (begrenzte
-// Reichweite heisst: nicht in Entdecken), 'held'/'removed' nie.
-// Eigene Posts sieht man auch in 'held' (mit Badge), damit klar ist,
-// dass sie in Prüfung sind.
+// Feed: alle öffentlichen Posts chronologisch (Community ist klein –
+// der Feed ist damit gleichzeitig die Entdeckungsfläche für Konten).
+// Reichweitenregeln bleiben: 'limited' sehen nur Follower, 'held' nur
+// die Autorin selbst (mit Badge), 'removed' niemand.
+// Später, wenn der Feed voller wird: Posts gefolgter Konten nach oben
+// ranken (nur die ORDER BY anpassen).
 import { sql } from 'drizzle-orm'
 import { requireUser } from '../utils/auth'
 import { db } from '../utils/db'
@@ -19,6 +20,7 @@ export default defineEventHandler(async (event) => {
       p.moderation_status as "moderationStatus",
       p.created_at as "createdAt",
       json_build_object(
+        'id', a.id,
         'handle', a.handle,
         'displayName', a.display_name,
         'avatarUrl', a.avatar_url
@@ -26,15 +28,23 @@ export default defineEventHandler(async (event) => {
       case when s.id is not null then json_build_object(
         'handle', s.handle,
         'displayName', s.display_name
-      ) end as subject
+      ) end as subject,
+      (p.author_account_id = ${account.id}) as "isOwn",
+      exists (
+        select 1 from follows f
+        where f.follower_account_id = ${account.id}
+          and f.followed_account_id = p.author_account_id
+      ) as "isFollowed"
     from posts p
     join accounts a on a.id = p.author_account_id and not a.banned
     left join accounts s on s.id = p.subject_account_id
     where
+      -- eigene Posts (auch 'held', als 'in Prüfung' markiert)
       (
         p.author_account_id = ${account.id}
         and p.moderation_status != 'removed'
       )
+      -- Posts gefolgter Konten inkl. begrenzter Reichweite
       or (
         exists (
           select 1 from follows f
@@ -43,6 +53,8 @@ export default defineEventHandler(async (event) => {
         )
         and p.moderation_status in ('visible', 'limited')
       )
+      -- alle übrigen: nur volle Sichtbarkeit
+      or p.moderation_status = 'visible'
     order by p.created_at desc
     limit 50
   `)

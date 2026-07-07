@@ -7,10 +7,25 @@ const props = defineProps<{
     linkUrl: string | null
     moderationStatus?: string
     createdAt: string | Date
-    author: { handle: string; displayName: string; avatarUrl: string | null }
+    author: { id?: string; handle: string; displayName: string; avatarUrl: string | null }
     subject?: { handle: string; displayName: string } | null
   }
+  /** Konto-ID des Autors anzeigen lassen, um direkt aus dem Feed zu folgen */
+  followableId?: string | null
 }>()
+
+const followState = ref<'idle' | 'busy' | 'done'>('idle')
+
+async function follow() {
+  if (!props.followableId || followState.value !== 'idle') return
+  followState.value = 'busy'
+  try {
+    await $fetch('/api/follows', { method: 'POST', body: { accountId: props.followableId } })
+    followState.value = 'done'
+  } catch {
+    followState.value = 'idle'
+  }
+}
 
 const timeFormat = new Intl.DateTimeFormat('de-CH', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -42,6 +57,17 @@ const embed = computed(() => {
           {{ post.author.displayName }}
         </NuxtLink>
         <span class="text-stone-400"> @{{ post.author.handle }} · {{ createdLabel }}</span>
+        <button
+          v-if="followableId && followState !== 'done'"
+          class="ml-2 rounded-full border border-rose-200 px-2 py-0.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+          :disabled="followState === 'busy'"
+          @click="follow"
+        >
+          + Folgen
+        </button>
+        <span v-else-if="followableId && followState === 'done'" class="ml-2 text-xs text-stone-400">
+          Folgt ✓
+        </span>
         <div v-if="post.subject" class="truncate text-xs text-stone-500">
           zu <NuxtLink :to="`/@${post.subject.handle}`" class="text-rose-600 hover:underline">{{ post.subject.displayName }}</NuxtLink>
         </div>

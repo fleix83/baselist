@@ -33,15 +33,18 @@ const { data, refresh } = await useFetch<{ posts: Array<{ id: string } & Record<
     <div v-else-if="!data?.posts.length" class="rounded-xl border border-dashed border-stone-300 p-10 text-center text-stone-500">
       <p class="font-medium">Hier ist noch nichts.</p>
       <p class="mt-1 text-sm">
-        Folge Konten aus
+        Schreib den ersten Post – oder stöbere in
         <NuxtLink to="/" class="text-rose-600 underline">Entdecken</NuxtLink>
-        – ihre Posts landen dann hier.
+        und folge Konten, die dich interessieren.
       </p>
     </div>
 
     <ul v-else class="space-y-3">
       <li v-for="post in data.posts" :key="post.id">
-        <PostCard :post="post as any" />
+        <PostCard
+          :post="post as any"
+          :followable-id="!post.isOwn && !post.isFollowed ? (post as any).author.id : null"
+        />
       </li>
     </ul>
     <button v-if="me?.account && data?.posts.length" class="mt-4 w-full text-sm text-stone-400" @click="refresh()">
