@@ -1,6 +1,8 @@
-// Folge-Feed: Posts gefolgter Konten, sortiert nach Posting-Zeit.
-// 'limited' ist im Feed der Follower sichtbar (begrenzte Reichweite heisst:
-// nicht in Entdecken), 'held'/'removed' nie.
+// Folge-Feed: eigene Posts plus Posts gefolgter Konten, sortiert nach
+// Posting-Zeit. 'limited' ist im Feed der Follower sichtbar (begrenzte
+// Reichweite heisst: nicht in Entdecken), 'held'/'removed' nie.
+// Eigene Posts sieht man auch in 'held' (mit Badge), damit klar ist,
+// dass sie in Prüfung sind.
 import { sql } from 'drizzle-orm'
 import { requireUser } from '../utils/auth'
 import { db } from '../utils/db'
@@ -26,11 +28,21 @@ export default defineEventHandler(async (event) => {
         'displayName', s.display_name
       ) end as subject
     from posts p
-    join follows f on f.followed_account_id = p.author_account_id
-      and f.follower_account_id = ${account.id}
     join accounts a on a.id = p.author_account_id and not a.banned
     left join accounts s on s.id = p.subject_account_id
-    where p.moderation_status in ('visible', 'limited')
+    where
+      (
+        p.author_account_id = ${account.id}
+        and p.moderation_status != 'removed'
+      )
+      or (
+        exists (
+          select 1 from follows f
+          where f.follower_account_id = ${account.id}
+            and f.followed_account_id = p.author_account_id
+        )
+        and p.moderation_status in ('visible', 'limited')
+      )
     order by p.created_at desc
     limit 50
   `)
