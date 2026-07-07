@@ -86,15 +86,18 @@ const embed = computed(() => {
     >
 
     <div v-if="embed" class="mt-3">
+      <!-- referrerpolicy: YouTube verlangt einen Referer (sonst Fehler 153);
+           'origin' schickt nur die Domain, nicht den vollen Pfad -->
       <iframe
         v-if="embed.kind === 'youtube'" :src="embed.src"
         class="aspect-video w-full rounded-lg" allowfullscreen loading="lazy"
-        referrerpolicy="no-referrer" title="YouTube-Video"
+        referrerpolicy="origin" title="YouTube-Video"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
       />
       <iframe
         v-else-if="embed.kind === 'instagram'" :src="embed.src"
         class="h-[480px] w-full max-w-sm rounded-lg" loading="lazy"
-        referrerpolicy="no-referrer" title="Instagram-Post"
+        referrerpolicy="origin" title="Instagram-Post"
       />
       <a
         v-else :href="embed.src" target="_blank" rel="noopener noreferrer nofollow"
