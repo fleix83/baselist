@@ -22,11 +22,19 @@ async function submit() {
       await refreshNuxtData('me')
       await navigateTo('/onboarding')
     } else {
+      // Code aktiv anfordern – je nach Neon-Auth-Einstellung wird beim
+      // Sign-up selbst keine Mail verschickt.
+      try { await sendVerificationOtp(email.value) } catch { /* Resend-Knopf bleibt */ }
       step.value = 'verify'
-      info.value = `Wir haben einen Bestätigungscode an ${email.value} geschickt.`
+      info.value = `Wir haben einen Bestätigungscode an ${email.value} geschickt. Nichts angekommen? Prüfe den Spam-Ordner (Absender: Neon Auth).`
     }
   } catch (err) {
-    error.value = authErrorMessage(err)
+    const code = (err as { data?: { code?: string } })?.data?.code ?? ''
+    if (code.startsWith('USER_ALREADY_EXISTS')) {
+      error.value = 'Diese E-Mail ist bereits registriert. Melde dich unten an – falls deine E-Mail noch nicht bestätigt ist, bekommst du dort einen neuen Code.'
+    } else {
+      error.value = authErrorMessage(err)
+    }
   } finally {
     loading.value = false
   }

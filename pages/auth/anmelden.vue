@@ -27,14 +27,24 @@ async function submit() {
     const anyErr = err as { data?: { code?: string } }
     // E-Mail noch nicht bestätigt -> Code anfordern und Verify-Schritt zeigen
     if (anyErr?.data?.code === 'EMAIL_NOT_VERIFIED') {
-      try { await sendVerificationOtp(email.value) } catch { /* Info reicht */ }
+      try { await sendVerificationOtp(email.value) } catch { /* Resend-Knopf bleibt */ }
       step.value = 'verify'
-      info.value = `Bitte bestätige zuerst deine E-Mail. Code ist unterwegs an ${email.value}.`
+      info.value = `Deine E-Mail ist noch nicht bestätigt. Wir haben einen Code an ${email.value} geschickt – prüfe auch den Spam-Ordner (Absender: Neon Auth).`
     } else {
       error.value = authErrorMessage(err)
     }
   } finally {
     loading.value = false
+  }
+}
+
+async function resend() {
+  error.value = ''
+  try {
+    await sendVerificationOtp(email.value)
+    info.value = 'Neuer Code verschickt.'
+  } catch (err) {
+    error.value = authErrorMessage(err)
   }
 }
 
@@ -99,6 +109,9 @@ async function verify() {
         class="w-full rounded-lg bg-rose-600 py-2.5 font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
       >
         Bestätigen
+      </button>
+      <button type="button" class="w-full text-sm text-stone-500 underline" @click="resend">
+        Code erneut senden
       </button>
     </form>
   </div>
