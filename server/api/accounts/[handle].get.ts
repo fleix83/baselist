@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, or } from 'drizzle-orm'
 import { getCurrentUser } from '../../utils/auth'
 import { db, schema } from '../../utils/db'
 import { normalizeHandle } from '../../utils/handles'
@@ -21,17 +21,30 @@ export default defineEventHandler(async (event) => {
   const current = await getCurrentUser(event)
   const isOwn = current?.account?.id === account.id
 
-  // Posts des Kontos (eigene sieht man auch in 'limited'/'held')
+  // Posts des Kontos plus Posts "am" Konto (z.B. Event-Updates);
+  // eigene sieht man auch in 'limited'/'held'
   const visibleStates = isOwn ? ['visible', 'limited', 'held'] : ['visible']
-  const posts = await db
-    .select()
+  const postRows = await db
+    .select({
+      post: schema.posts,
+      author: {
+        handle: schema.accounts.handle,
+        displayName: schema.accounts.displayName,
+        avatarUrl: schema.accounts.avatarUrl,
+      },
+    })
     .from(schema.posts)
+    .innerJoin(schema.accounts, eq(schema.posts.authorAccountId, schema.accounts.id))
     .where(and(
-      eq(schema.posts.authorAccountId, account.id),
+      or(
+        eq(schema.posts.authorAccountId, account.id),
+        eq(schema.posts.subjectAccountId, account.id),
+      ),
       inArray(schema.posts.moderationStatus, visibleStates as ('visible' | 'limited' | 'held')[]),
     ))
     .orderBy(desc(schema.posts.createdAt))
     .limit(30)
+  const posts = postRows.map((row) => ({ ...row.post, author: row.author }))
 
   const [followerCount] = await db
     .select({ value: count() })

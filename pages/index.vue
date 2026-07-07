@@ -33,7 +33,16 @@ function toggle(key: string) {
 
 <template>
   <div>
-    <h1 class="mb-1 text-2xl font-bold">Entdecken</h1>
+    <div class="mb-1 flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Entdecken</h1>
+      <NuxtLink
+        v-if="me?.account"
+        to="/neu/event"
+        class="rounded-full bg-rose-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-rose-700"
+      >
+        + Event
+      </NuxtLink>
+    </div>
     <p class="mb-4 text-sm text-stone-500">Was läuft in Basel?</p>
 
     <!-- Kategorie-Filter -->

@@ -51,13 +51,22 @@ const TYPE_LABELS: Record<string, string> = {
     <EventDetails v-if="profile.event" :event="profile.event" class="mt-4" />
 
     <!-- Posts -->
-    <h2 class="mb-3 mt-8 text-lg font-semibold">Posts</h2>
+    <div class="mb-3 mt-8 flex items-center justify-between">
+      <h2 class="text-lg font-semibold">Posts</h2>
+      <NuxtLink
+        v-if="profile.event"
+        :to="`/neu/post?zu=${profile.account.id}`"
+        class="text-sm font-medium text-rose-600 hover:underline"
+      >
+        Update posten
+      </NuxtLink>
+    </div>
     <div v-if="profile.posts.length === 0" class="rounded-xl border border-dashed border-stone-300 p-6 text-center text-sm text-stone-500">
       Noch keine Posts.
     </div>
     <ul v-else class="space-y-3">
       <li v-for="post in profile.posts" :key="post.id">
-        <PostCard :post="{ ...post, author: profile.account }" />
+        <PostCard :post="post" />
       </li>
     </ul>
   </div>

@@ -3,6 +3,7 @@
 export interface Me {
   authUser: { id: string; email: string; emailVerified: boolean } | null
   user: { isAdmin: boolean; interests: string[] } | null
+  uploadsEnabled?: boolean
   account: {
     id: string
     handle: string
